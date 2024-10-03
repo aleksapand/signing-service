@@ -3,10 +3,12 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/fiskaly/coding-challenges/signing-service-challenge/persistence"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
+
+	"github.com/fiskaly/coding-challenges/signing-service-challenge/persistence"
 )
 
 func initServer(db *persistence.InMemoryDB) *httptest.Server {
@@ -261,15 +263,15 @@ func TestServer_CreateDevicesAndSignatures(t *testing.T) {
 
 	device2, _ := db.Get(idDevice2)
 	if !device2.Signer.VerifySignature([]byte(signDataResponse.SignedData), signDataResponse.Signature) {
-		t.Error("Failed to verify signature from device1.")
+		t.Error("Failed to verify signature from device2.")
 	}
 
 	if !bytes.Equal(device2.LastSig, signDataResponse.Signature) {
-		t.Error("Device1 state not updated properly.")
+		t.Error("Device2 state not updated properly.")
 	}
 
 	if device2.SignatureCounter != 1 {
-		t.Error("Device1 state not updated properly.")
+		t.Error("Device2 state not updated properly.")
 	}
 
 	requestSignData2 = SignDataRequest{
@@ -287,7 +289,7 @@ func TestServer_CreateDevicesAndSignatures(t *testing.T) {
 	_ = json.Unmarshal(dataBytes, &signDataResponse)
 
 	if !device2.Signer.VerifySignature([]byte(signDataResponse.SignedData), signDataResponse.Signature) {
-		t.Error("Failed to verify signature from device1.")
+		t.Error("Failed to verify signature from device2.")
 	}
 
 	if !bytes.Equal(device2.LastSig, signDataResponse.Signature) {
@@ -297,4 +299,18 @@ func TestServer_CreateDevicesAndSignatures(t *testing.T) {
 	if device2.SignatureCounter != 2 {
 		t.Error("Device1 state not updated properly.")
 	}
+
+	// Test concurrent calls to sign endpoint targeting same device
+	var wg sync.WaitGroup
+	numOfRequests := 100
+
+	wg.Add(numOfRequests)
+
+	for i := 0; i < numOfRequests; i++ {
+		go func() {
+			defer wg.Done()
+			go sendPostRequest(ts.URL+"/api/v0/sign", body)
+		}()
+	}
+
 }

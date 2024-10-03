@@ -86,7 +86,13 @@ func (s *Server) SignData(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	signatureDevice, _ := s.db.Get(requestData.Id)
+	signatureDevice, exists := s.db.Get(requestData.Id)
+	if !exists {
+		WriteErrorResponse(response, http.StatusNotFound, []string{
+			"No device found under provided id.",
+		})
+	}
+
 	data, signature, err := signatureDevice.SignData([]byte(requestData.Data))
 
 	if err != nil {
@@ -145,7 +151,12 @@ func (s *Server) GetDevice(response http.ResponseWriter, request *http.Request) 
 		return
 	}
 
-	device, _ := s.db.Get(id)
+	device, exists := s.db.Get(id)
+	if !exists {
+		WriteErrorResponse(response, http.StatusNotFound, []string{
+			"No device found under provided id.",
+		})
+	}
 
 	deviceResponse := SignatureDeviceResponse{
 		Id:        device.Id,
