@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/big"
-	"sync"
 )
 
 // Signer defines a contract for different types of signing implementations.
@@ -22,26 +21,22 @@ type Signer interface {
 // RSASigner stores RSA Keys and handles data signing and verifying.
 type RSASigner struct {
 	keyPair *RSAKeyPair
-	mu      sync.RWMutex
 }
 
 // ECCSigner stores ECDS Keys and handles data signing and verifying.
 type ECCSigner struct {
 	keyPair *ECCKeyPair
-	mu      sync.RWMutex
 }
 
 // NewRSASigner is a factory to instantiate a new RSASigner.
 func NewRSASigner() *RSASigner {
 	keyGenerator := RSAGenerator{}
 	keyPair, _ := keyGenerator.Generate()
-	return &RSASigner{keyPair, sync.RWMutex{}}
+	return &RSASigner{keyPair}
 }
 
 // Sign of RSASigner signs the data with RSA algorithm.
 func (signer *RSASigner) Sign(dataToBeSigned []byte) ([]byte, error) {
-	signer.mu.Lock()
-	defer signer.mu.Unlock()
 	hashed := sha256.Sum256(dataToBeSigned)
 	signature, err := rsa.SignPKCS1v15(rand.Reader, signer.keyPair.Private, crypto.SHA256, hashed[:])
 	if err != nil {
@@ -74,13 +69,11 @@ func (signer *RSASigner) GetPublicKey() crypto.PublicKey {
 func NewECCSigner() *ECCSigner {
 	keyGenerator := ECCGenerator{}
 	keyPair, _ := keyGenerator.Generate()
-	return &ECCSigner{keyPair, sync.RWMutex{}}
+	return &ECCSigner{keyPair}
 }
 
 // Sign of ECCSigner signs the data with ECDS algorithm.
 func (signer *ECCSigner) Sign(dataToBeSigned []byte) ([]byte, error) {
-	signer.mu.Lock()
-	defer signer.mu.Unlock()
 	hashed := sha256.Sum256(dataToBeSigned)
 	r, s, err := ecdsa.Sign(rand.Reader, signer.keyPair.Private, hashed[:])
 	if err != nil {

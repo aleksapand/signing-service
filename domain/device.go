@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/fiskaly/coding-challenges/signing-service-challenge/crypto"
 	"github.com/google/uuid"
@@ -17,6 +18,7 @@ type SignatureDevice struct {
 	SignatureCounter uint64
 	Signer           crypto.Signer
 	LastSig          []byte
+	sigMutex         sync.RWMutex
 }
 
 // NewSignatureDevice is factory that initializes signature device.
@@ -27,11 +29,13 @@ func NewSignatureDevice(label string, algorithm string, signer crypto.Signer) *S
 	if label == "" {
 		label = id.String()
 	}
-	signatureDevice := SignatureDevice{id, label, algorithm, 0, signer, base64EncodedId}
+	signatureDevice := SignatureDevice{id, label, algorithm, 0, signer, base64EncodedId, sync.RWMutex{}}
 	return &signatureDevice
 }
 
 func (device *SignatureDevice) SignData(rawData []byte) ([]byte, []byte, error) {
+	device.sigMutex.Lock()
+	defer device.sigMutex.Unlock()
 	data := prepareData(device.SignatureCounter, rawData, device.LastSig)
 	signature, err := device.Signer.Sign(data)
 	device.setLastSignature(signature)
