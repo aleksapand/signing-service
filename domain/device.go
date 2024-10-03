@@ -2,6 +2,9 @@ package domain
 
 import (
 	"encoding/base64"
+	"strconv"
+	"strings"
+
 	"github.com/fiskaly/coding-challenges/signing-service-challenge/crypto"
 	"github.com/google/uuid"
 )
@@ -28,8 +31,25 @@ func NewSignatureDevice(label string, algorithm string, signer crypto.Signer) *S
 	return &signatureDevice
 }
 
+func (device *SignatureDevice) SignData(rawData []byte) ([]byte, []byte, error) {
+	data := prepareData(device.SignatureCounter, rawData, device.LastSig)
+	signature, err := device.Signer.Sign(data)
+	device.setLastSignature(signature)
+
+	return data, signature, err
+}
+
 // SetLastSignature updates last signature and increments signature counter
-func (device *SignatureDevice) SetLastSignature(lastSig []byte) {
+func (device *SignatureDevice) setLastSignature(lastSig []byte) {
 	device.SignatureCounter += 1
 	device.LastSig = lastSig
+}
+
+// PrepareData appends and prepends id and last signature to the data from sign request.
+func prepareData(counter uint64, data []byte, lastSig []byte) []byte {
+
+	formattedData := strings.Join([]string{strconv.FormatUint(counter, 10), string(data),
+		base64.StdEncoding.EncodeToString(lastSig)}, "_")
+	return []byte(formattedData)
+
 }

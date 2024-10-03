@@ -2,14 +2,13 @@ package api
 
 import (
 	"crypto"
-	"encoding/base64"
 	"encoding/json"
+	"net/http"
+	"strings"
+
 	crypto2 "github.com/fiskaly/coding-challenges/signing-service-challenge/crypto"
 	"github.com/fiskaly/coding-challenges/signing-service-challenge/domain"
 	"github.com/google/uuid"
-	"net/http"
-	"strconv"
-	"strings"
 )
 
 // SignatureDeviceResponse is response for newly created signature device.
@@ -88,9 +87,14 @@ func (s *Server) SignData(response http.ResponseWriter, request *http.Request) {
 	}
 
 	signatureDevice, _ := s.db.Get(requestData.Id)
-	data := PrepareData(signatureDevice.SignatureCounter, []byte(requestData.Data), signatureDevice.LastSig)
-	signature, _ := signatureDevice.Signer.Sign(data)
-	signatureDevice.SetLastSignature(signature)
+	data, signature, err := signatureDevice.SignData([]byte(requestData.Data))
+
+	if err != nil {
+		WriteErrorResponse(response, http.StatusInternalServerError, []string{
+			"Signing data failed",
+		})
+		return
+	}
 
 	signedDataResponse := SignDataResponse{
 		signature,
@@ -98,15 +102,6 @@ func (s *Server) SignData(response http.ResponseWriter, request *http.Request) {
 	}
 
 	WriteAPIResponse(response, http.StatusOK, signedDataResponse)
-}
-
-// PrepareData appends and prepends id and last signature to the data from sign request.
-func PrepareData(counter uint64, data []byte, lastSig []byte) []byte {
-
-	formattedData := strings.Join([]string{strconv.FormatUint(counter, 10), string(data),
-		base64.StdEncoding.EncodeToString(lastSig)}, "_")
-	return []byte(formattedData)
-
 }
 
 // GetDevices handles get request for all created devices.
