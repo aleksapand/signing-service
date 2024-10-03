@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"strings"
+	"sync"
 	"testing"
 
 	crypto2 "github.com/fiskaly/coding-challenges/signing-service-challenge/crypto"
@@ -43,6 +44,24 @@ func TestDevice_CreateAndSign(t *testing.T) {
 
 	if !bytes.Equal(signatureDevice.LastSig, signature) {
 		t.Error("Device state not properly updated")
+	}
+}
+
+// go test -race
+func TestDevice_ConcurrentSignatures(t *testing.T) {
+	algorithm := "RSA"
+	signer, _ := crypto2.SignerFactory(algorithm)
+	signatureDevice := NewSignatureDevice("", algorithm, signer)
+
+	var wg sync.WaitGroup
+	goroutinesNum := 10
+
+	wg.Add(goroutinesNum)
+	for i := 0; i < goroutinesNum; i++ {
+		go func() {
+			defer wg.Done()
+			signatureDevice.SignData([]byte("Hello World!"))
+		}()
 	}
 }
 
