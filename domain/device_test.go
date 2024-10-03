@@ -13,7 +13,7 @@ import (
 func TestDevice_CreateDevice(t *testing.T) {
 	algorithm := "RSA"
 	signer, _ := crypto2.SignerFactory(algorithm)
-	signatureDevice := NewSignatureDevice("", algorithm, signer)
+	signatureDevice := NewSignatureDevice("", signer)
 
 	if signatureDevice.SignatureCounter != 0 {
 		t.Error("Device not properly initialized")
@@ -30,7 +30,7 @@ func TestDevice_CreateDevice(t *testing.T) {
 func TestDevice_CreateAndSign(t *testing.T) {
 	algorithm := "RSA"
 	signer, _ := crypto2.SignerFactory(algorithm)
-	signatureDevice := NewSignatureDevice("", algorithm, signer)
+	signatureDevice := NewSignatureDevice("", signer)
 
 	data, signature, _ := signatureDevice.SignData([]byte("Hello World!"))
 
@@ -51,7 +51,7 @@ func TestDevice_CreateAndSign(t *testing.T) {
 func TestDevice_ConcurrentSignatures(t *testing.T) {
 	algorithm := "RSA"
 	signer, _ := crypto2.SignerFactory(algorithm)
-	signatureDevice := NewSignatureDevice("", algorithm, signer)
+	signatureDevice := NewSignatureDevice("", signer)
 
 	var wg sync.WaitGroup
 	goroutinesNum := 10

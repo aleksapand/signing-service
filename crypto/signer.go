@@ -16,6 +16,7 @@ type Signer interface {
 	Sign(dataToBeSigned []byte) ([]byte, error)
 	VerifySignature(data []byte, base64Signature []byte) bool
 	GetPublicKey() crypto.PublicKey
+	GetAlgorithm() string
 }
 
 // RSASigner stores RSA Keys and handles data signing and verifying.
@@ -65,6 +66,10 @@ func (signer *RSASigner) GetPublicKey() crypto.PublicKey {
 	return signer.keyPair.Public
 }
 
+func (signer RSASigner) GetAlgorithm() string {
+	return "RSA"
+}
+
 // NewECCSigner is a factory to instantiate a new ECCSigner.
 func NewECCSigner() *ECCSigner {
 	keyGenerator := ECCGenerator{}
@@ -110,4 +115,8 @@ func (signer *ECCSigner) VerifySignature(data []byte, base64Signature []byte) bo
 // GetPublicKey of ECCSigner returns ECDS Public Key
 func (signer *ECCSigner) GetPublicKey() crypto.PublicKey {
 	return signer.keyPair.Public
+}
+
+func (signer ECCSigner) GetAlgorithm() string {
+	return "ECC"
 }

@@ -58,13 +58,13 @@ func (s *Server) CreateSignatureDevice(response http.ResponseWriter, request *ht
 		http.Error(response, err.Error(), http.StatusBadRequest)
 		return
 	}
-	newSignatureDevice := domain.NewSignatureDevice(requestData.Label, requestData.Algorithm, signer)
+	newSignatureDevice := domain.NewSignatureDevice(requestData.Label, signer)
 	s.db.Set(newSignatureDevice.Id, newSignatureDevice)
 
 	newDeviceResponse := SignatureDeviceResponse{
 		Id:        newSignatureDevice.Id,
 		Label:     newSignatureDevice.Label,
-		Algorithm: newSignatureDevice.Algorithm,
+		Algorithm: newSignatureDevice.Signer.GetAlgorithm(),
 		PublicKey: newSignatureDevice.Signer.GetPublicKey(),
 	}
 	WriteAPIResponse(response, http.StatusOK, newDeviceResponse)
@@ -120,7 +120,7 @@ func (s *Server) GetDevices(response http.ResponseWriter, request *http.Request)
 		allDevicesResponse = append(allDevicesResponse, SignatureDeviceResponse{
 			Id:        device.Id,
 			Label:     device.Label,
-			Algorithm: device.Algorithm,
+			Algorithm: device.Signer.GetAlgorithm(),
 			PublicKey: device.Signer.GetPublicKey(),
 		})
 	}
@@ -150,7 +150,7 @@ func (s *Server) GetDevice(response http.ResponseWriter, request *http.Request) 
 	deviceResponse := SignatureDeviceResponse{
 		Id:        device.Id,
 		Label:     device.Label,
-		Algorithm: device.Algorithm,
+		Algorithm: device.Signer.GetAlgorithm(),
 		PublicKey: device.Signer.GetPublicKey(),
 	}
 
